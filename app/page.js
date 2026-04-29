@@ -84,7 +84,13 @@ export default function App() {
       });
       const data = await response.json();
       const raw = data.content?.find(b => b.type === "text")?.text || "";
-      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    let parsed;
+try {
+  parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+} catch(parseError) {
+  console.error("Parse error:", parseError, "Raw:", raw);
+  throw new Error("Parse failed");
+}
       setResult(parsed);
       setCurrentEntry({ id: Date.now(), date: new Date().toISOString(), titre: form.titre || "(sans titre)", sport_type: form.sport_type, verdict_outil: parsed.verdict, confidence: parsed.confidence });
       setView("result");
