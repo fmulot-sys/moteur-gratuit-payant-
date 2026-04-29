@@ -1,7 +1,9 @@
 'use client';
 import { useState } from "react";
 
-const MATRIX_SYSTEM_PROMPT = `Tu es un expert en stratégie éditoriale pour L'Équipe. Tu dois appliquer strictement la matrice de décision gratuit/payant ci-dessous pour arbitrer la publication d'un article.
+const MATRIX_SYSTEM_PROMPT = `Tu es un expert en stratégie éditoriale pour L'Équipe. Tu dois appliquer la matrice de décision gratuit/payant ci-dessous pour arbitrer la publication d'un article.
+
+IMPORTANT : L'utilisateur a renseigné des critères (type de sport, exclusivité, transversalité) mais tu dois TOUJOURS lire et analyser le texte de l'article pour vérifier si ces critères sont cohérents avec le contenu réel. Si tu détectes une incohérence entre ce que l'utilisateur a coché et ce que le texte révèle, signale-le explicitement et base ton verdict sur ta lecture du texte plutôt que sur les cases cochées.
 
 ## MATRICE DE DÉCISION
 
@@ -12,34 +14,48 @@ const MATRIX_SYSTEM_PROMPT = `Tu es un expert en stratégie éditoriale pour L'�
 ### Logique décisionnelle
 
 **ÉTAPE 1 — Type de sport**
-Top sports (foot, rugby, tennis, NBA, F1, cyclisme) → aller à l'étape 2A
-Autres sports → aller à l'étape 2B
-Respire → aller à l'étape 2C
+Vérifie dans le texte si le sport traité correspond bien à la catégorie indiquée par l'utilisateur.
+Top sports = football, rugby, tennis, cyclisme, Formule 1, NBA
+Autres sports = tous les autres sports
+Respire = contenu lifestyle / bien-être
 
 **ÉTAPE 2A — Top sport : exclusivité ?**
+Exclusivité = présence terrain sans concurrence (reportage) OU propos accordés en exclusivité ou en premier (interview, même partagée avec peu de médias) OU capacité d'analyse exclusive propre à L'Équipe (décryptage).
+Vérifie dans le texte si l'exclusivité revendiquée est réelle.
 → SI OUI : PAYANT
 → SI NON : GRATUIT
 
 **ÉTAPE 2B — Autre sport : exclusivité + transversalité ?**
+Transversalité = sujet qui dépasse les fans/experts du sport (société, lifestyle, judiciaire, parcours de vie atypique, nouvelle notoriété, etc.)
+Vérifie dans le texte si la transversalité revendiquée est réelle.
 → SI exclusivité ET transversalité : PAYANT
-→ SINON : GRATUIT
+→ SI exclusivité seule : GRATUIT
+→ SI ni exclusivité ni transversalité : GRATUIT
 
 **ÉTAPE 2C — Respire : exclusivité + transversalité + notoriété ?**
-→ SI les trois : PAYANT
-→ SINON : GRATUIT
+→ SI exclusivité ET transversalité ET intervenant connu : PAYANT
+→ SI exclusivité ET transversalité ET intervenant anonyme : GRATUIT
+→ SI exclusivité seule : GRATUIT
 
+### Cas limites
+Si les critères sont ambigus ou se contredisent, signale-le explicitement. Ne force pas un verdict binaire si ce n'est pas clair.
+
+## FORMAT DE RÉPONSE
 Réponds UNIQUEMENT en JSON valide sans markdown :
 {
   "verdict": "PAYANT" | "GRATUIT" | "CAS LIMITE",
   "confidence": "haute" | "moyenne" | "faible",
   "etapes": [{ "label": "...", "reponse": "...", "explication": "..." }],
   "raisonnement": "...",
+  "incoherences": "..." | null,
   "cas_limite": "..." | null,
   "recommandation_redac": "..."
-}`;
+}
+
+Le champ "incoherences" doit signaler si le texte contredit les critères cochés par l'utilisateur. Null si tout est cohérent.`;
 
 const SPORT_TYPES = [
-  { value: "top", label: "⚽ Top sport", sub: "Foot, rugby, tennis, NBA, F1, cyclisme" },
+  { value: "top", label: "🏆 Top sport / compétition à potentiel abo", sub: "Football · Rugby · Tennis · Cyclisme · Formule 1 · NBA" },
   { value: "other", label: "🏅 Autre sport", sub: "Tous les autres sports" },
   { value: "respire", label: "🌿 Respire", sub: "Contenu lifestyle / bien-être" },
 ];
@@ -75,7 +91,19 @@ export default function App() {
 
   async function handleSubmit() {
     setView("loading"); setError(null); setFeedback(null); setFeedbackSaved(false); setFeedbackComment(""); setFeedbackDecision("");
-    const userPrompt = `Arbitre cet article.\nTITRE : ${form.titre || "(non renseigné)"}\nTYPE : ${form.sport_type === "top" ? "Top sport" : form.sport_type === "respire" ? "Respire" : "Autre sport"}\nEXCLUSIVITÉ : ${form.exclusivite === "oui" ? "Oui" : form.exclusivite === "non" ? "Non" : "Partielle"}${showTransversalite ? `\nTRANSVERSALITÉ : ${form.transversalite === "oui" ? "Oui" : form.transversalite === "non" ? "Non" : "Difficile à dire"}` : ""}${showNotoriete ? `\nNOTORIÉTÉ : ${form.notoriete === "oui" ? "Oui" : "Non"}` : ""}\nTEXTE : ${form.texte}`;
+    const userPrompt = `Critères renseignés par l'utilisateur (à vérifier et challenger via le texte) :
+TYPE DE SPORT déclaré : ${form.sport_type === "top" ? "Top sport (football, rugby, tennis, cyclisme, F1, NBA)" : form.sport_type === "respire" ? "Respire" : "Autre sport"}
+EXCLUSIVITÉ déclarée : ${form.exclusivite === "oui" ? "Oui" : form.exclusivite === "non" ? "Non" : "Partielle / incertaine"}
+${showTransversalite ? `TRANSVERSALITÉ déclarée : ${form.transversalite === "oui" ? "Oui" : form.transversalite === "non" ? "Non" : "Difficile à dire"}` : ""}
+${showNotoriete ? `NOTORIÉTÉ déclarée : ${form.notoriete === "oui" ? "Oui (intervenant connu)" : "Non (anonyme)"}` : ""}
+
+TITRE : ${form.titre || "(non renseigné)"}
+
+TEXTE DE L'ARTICLE À ANALYSER :
+${form.texte}
+
+Analyse le texte pour vérifier si les critères déclarés sont cohérents avec le contenu réel, puis applique la matrice.`;
+
     try {
       const response = await fetch("/api/arbitrage", {
         method: "POST",
@@ -84,13 +112,12 @@ export default function App() {
       });
       const data = await response.json();
       const raw = data.content?.find(b => b.type === "text")?.text || "";
-    let parsed;
-try {
-  parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-} catch(parseError) {
-  console.error("Parse error:", parseError, "Raw:", raw);
-  throw new Error("Parse failed");
-}
+      let parsed;
+      try {
+        parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      } catch(parseError) {
+        throw new Error("Parse failed");
+      }
       setResult(parsed);
       setCurrentEntry({ id: Date.now(), date: new Date().toISOString(), titre: form.titre || "(sans titre)", sport_type: form.sport_type, verdict_outil: parsed.verdict, confidence: parsed.confidence });
       setView("result");
@@ -126,7 +153,7 @@ try {
 
         {view === "form" && <div>
           <h1 style={{ color: "#111", fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Gratuit ou payant ?</h1>
-          <p style={{ color: "#777", fontSize: 14, marginBottom: 36, lineHeight: 1.6 }}>Renseigne les infos et colle le texte. L&apos;outil applique la matrice et motive son verdict.</p>
+          <p style={{ color: "#777", fontSize: 14, marginBottom: 36, lineHeight: 1.6 }}>Renseigne les critères et colle le texte. L&apos;outil applique la matrice et vérifie la cohérence de tes choix avec le contenu de l&apos;article.</p>
           {error && <div style={{ background: "#fff0f0", border: "1px solid #c8102e", borderRadius: 8, padding: "12px 16px", marginBottom: 20, color: "#c8102e", fontSize: 13 }}>{error}</div>}
 
           <div style={{ marginBottom: 24 }}>
@@ -135,7 +162,8 @@ try {
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label style={{ color: "#111", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 8 }}>Type de contenu</label>
+            <label style={{ color: "#111", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 4 }}>Type de contenu</label>
+            <p style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>L&apos;outil vérifiera ce choix à la lecture du texte</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {SPORT_TYPES.map(s => (
                 <button key={s.value} onClick={() => setForm({...form, sport_type: s.value, transversalite: "", notoriete: ""})}
@@ -149,7 +177,7 @@ try {
 
           {form.sport_type && <div style={{ marginBottom: 24 }}>
             <label style={{ color: "#111", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 4 }}>Le contenu est-il exclusif ?</label>
-            <p style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>Terrain sans concurrence, interview en 1er, analyse propre à L&apos;Équipe</p>
+            <p style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>Terrain sans concurrence, interview accordée en 1er, analyse propre à L&apos;Équipe — l&apos;outil vérifiera dans le texte</p>
             <div style={{ display: "flex", gap: 8 }}>
               {[{v:"oui",l:"Oui"},{v:"non",l:"Non"},{v:"partiel",l:"Partiel / incertain"}].map(o => (
                 <button key={o.v} onClick={() => setForm({...form, exclusivite: o.v})}
@@ -162,7 +190,7 @@ try {
 
           {showTransversalite && form.exclusivite && <div style={{ marginBottom: 24 }}>
             <label style={{ color: "#111", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 4 }}>L&apos;angle est-il transversal ?</label>
-            <p style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>Dépasse les fans — société, lifestyle, judiciaire, parcours de vie</p>
+            <p style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>Dépasse les fans — société, lifestyle, judiciaire, parcours de vie — l&apos;outil vérifiera dans le texte</p>
             <div style={{ display: "flex", gap: 8 }}>
               {[{v:"oui",l:"Oui"},{v:"non",l:"Non"},{v:"partiel",l:"Difficile à dire"}].map(o => (
                 <button key={o.v} onClick={() => setForm({...form, transversalite: o.v})}
@@ -187,7 +215,7 @@ try {
 
           <div style={{ marginBottom: 28 }}>
             <label style={{ color: "#111", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 4 }}>Texte de l&apos;article</label>
-            <p style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>Colle le texte complet ou un extrait représentatif</p>
+            <p style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>Colle le texte complet ou un extrait représentatif — plus le texte est complet, plus l&apos;analyse sera fiable</p>
             <textarea style={{ ...S.input, minHeight: 160, resize: "vertical", lineHeight: 1.6 }} placeholder="Colle ici le texte..." value={form.texte} onChange={e => setForm({...form, texte: e.target.value})} />
           </div>
 
@@ -199,7 +227,7 @@ try {
 
         {view === "loading" && <div style={{ textAlign: "center", paddingTop: 80 }}>
           <div style={{ fontSize: 40, marginBottom: 20 }}>⏳</div>
-          <p style={{ color: "#888", fontSize: 15 }}>Application de la matrice en cours…</p>
+          <p style={{ color: "#888", fontSize: 15 }}>Lecture et analyse de l&apos;article en cours…</p>
         </div>}
 
         {view === "result" && result && (() => {
@@ -215,8 +243,12 @@ try {
                 <span style={{ fontSize: 12, color: cfg.accent, fontWeight: 700, textTransform: "uppercase" }}>{result.confidence}</span>
               </div>
               <p style={{ color: "#333", fontSize: 14, lineHeight: 1.8, margin: 0 }}>{result.raisonnement}</p>
-              {result.cas_limite && <div style={{ marginTop: 16, background: "#fff8e0", border: "1px solid #f4a100", borderRadius: 8, padding: "12px 14px" }}>
-                <span style={{ color: "#b45000", fontSize: 13, fontWeight: 600 }}>⚠️ Point d&apos;attention : </span>
+              {result.incoherences && <div style={{ marginTop: 16, background: "#fff8e0", border: "1px solid #f4a100", borderRadius: 8, padding: "12px 14px" }}>
+                <span style={{ color: "#b45000", fontSize: 13, fontWeight: 600 }}>⚠️ Incohérence détectée : </span>
+                <span style={{ color: "#555", fontSize: 13 }}>{result.incoherences}</span>
+              </div>}
+              {result.cas_limite && <div style={{ marginTop: 12, background: "#f0f0ff", border: "1px solid #aaa", borderRadius: 8, padding: "12px 14px" }}>
+                <span style={{ color: "#444", fontSize: 13, fontWeight: 600 }}>🔎 Cas limite : </span>
                 <span style={{ color: "#555", fontSize: 13 }}>{result.cas_limite}</span>
               </div>}
             </div>
@@ -258,72 +290,4 @@ try {
                   <p style={{ color: "#666", fontSize: 12, marginBottom: 8 }}>Décision finale ?</p>
                   <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                     {["PAYANT","GRATUIT","CAS LIMITE"].map(v => (
-                      <button key={v} onClick={() => setFeedbackDecision(v)} style={{ flex: 1, padding: "8px", background: feedbackDecision === v ? "#111" : "#fff", border: feedbackDecision === v ? "1px solid #111" : "1px solid #ddd", borderRadius: 6, color: feedbackDecision === v ? "#fff" : "#555", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{v}</button>
-                    ))}
-                  </div>
-                </div>}
-                {feedback && <>
-                  <textarea style={{ ...S.input, minHeight: 70, resize: "none", fontSize: 13, marginBottom: 10 }} placeholder="Commentaire optionnel — pourquoi cette décision ?" value={feedbackComment} onChange={e => setFeedbackComment(e.target.value)} />
-                  <button onClick={submitFeedback} disabled={feedback === "different" && !feedbackDecision}
-                    style={{ width: "100%", padding: "10px", background: (feedback === "suivi" || feedbackDecision) ? "#c8102e" : "#eee", color: (feedback === "suivi" || feedbackDecision) ? "#fff" : "#aaa", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    Enregistrer mon retour →
-                  </button>
-                </>}
-              </> : <div style={{ textAlign: "center", padding: "12px 0" }}>
-                <span style={{ fontSize: 22 }}>✓</span>
-                <p style={{ color: "#1a7a3f", fontSize: 13, margin: "6px 0 0" }}>Retour enregistré — merci !</p>
-              </div>}
-            </div>
-
-            <button onClick={reset} style={{ width: "100%", padding: "14px", background: "#fff", color: "#888", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>← Nouvel article</button>
-          </div>;
-        })()}
-
-        {view === "history" && <div>
-          <h1 style={{ color: "#111", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Historique des arbitrages</h1>
-          <p style={{ color: "#888", fontSize: 13, marginBottom: 28 }}>Session en cours uniquement.</p>
-          {history.length === 0
-            ? <p style={{ color: "#bbb", fontSize: 14, textAlign: "center", paddingTop: 60 }}>Aucun arbitrage enregistré pour l&apos;instant.</p>
-            : <>
-              <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
-                {[
-                  { label: "Total", value: history.length, color: "#111" },
-                  { label: "Suivis", value: history.filter(h => h.feedback === "suivi").length, color: "#1a7a3f" },
-                  { label: "Divergences", value: history.filter(h => h.feedback === "different").length, color: "#c8102e" },
-                ].map(s => (
-                  <div key={s.label} style={{ flex: 1, background: "#f9f9f9", border: "1px solid #eee", borderRadius: 8, padding: "12px", textAlign: "center" }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.value}</div>
-                    <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {history.map(entry => {
-                  const cfg = verdictConfig[entry.verdict_outil] || verdictConfig["CAS LIMITE"];
-                  const realCfg = entry.decision_reelle ? verdictConfig[entry.decision_reelle] : null;
-                  return <div key={entry.id} style={{ background: "#f9f9f9", border: "1px solid #eee", borderRadius: 10, padding: "14px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ color: "#111", fontSize: 13, fontWeight: 600, margin: "0 0 4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry.titre}</p>
-                        <p style={{ color: "#aaa", fontSize: 11, margin: 0 }}>{new Date(entry.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                        <span style={{ fontSize: 11, color: cfg.accent, fontWeight: 700, background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 4, padding: "2px 8px" }}>{entry.verdict_outil}</span>
-                        {entry.feedback === "different" && realCfg && <>
-                          <span style={{ color: "#ccc" }}>→</span>
-                          <span style={{ fontSize: 11, color: realCfg.accent, fontWeight: 700, background: realCfg.bg, border: `1px solid ${realCfg.border}`, borderRadius: 4, padding: "2px 8px" }}>{entry.decision_reelle}</span>
-                        </>}
-                        {entry.feedback === "suivi" && <span style={{ color: "#1a7a3f" }}>✓</span>}
-                      </div>
-                    </div>
-                    {entry.commentaire && <p style={{ color: "#888", fontSize: 12, margin: "10px 0 0", fontStyle: "italic", borderTop: "1px solid #eee", paddingTop: 8 }}>"{entry.commentaire}"</p>}
-                  </div>;
-                })}
-              </div>
-            </>
-          }
-        </div>}
-      </div>
-    </div>
-  );
-}
+                      <button key={v} onClick={() => setFeedbackDecision(v)} style={
