@@ -80,7 +80,7 @@ export default function App() {
       const response = await fetch("/api/arbitrage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: MATRIX_SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }] }),
+        body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 1000, system: MATRIX_SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }] }),
       });
       const data = await response.json();
       const raw = data.content?.find(b => b.type === "text")?.text || "";
