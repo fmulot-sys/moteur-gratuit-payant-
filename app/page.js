@@ -285,7 +285,24 @@ Analyse le texte pour vérifier si les critères déclarés sont cohérents avec
                   <p style={{ color: "#666", fontSize: 12, marginBottom: 8 }}>Décision finale ?</p>
                   <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                     {["PAYANT","GRATUIT","CAS LIMITE"].map(v => (
-                      <button key={v} onClick={() => setFeedbackDecision(v)} style={{ flex: 1, padding: "8px", background: feedbackDecision === v ? "#111" : "#fff", border: feedbackDecision === v ? "1px solid #111" : "1px solid #ddd", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>← Nouvel article</button>
+                      <button key={v} onClick={() => setFeedbackDecision(v)} style={{ flex: 1, padding: "8px", background: feedbackDecision === v ? "#111" : "#fff", border: feedbackDecision === v ? "1px solid #111" : "1px solid #ddd", borderRadius: 6, color: feedbackDecision === v ? "#fff" : "#555", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{v}</button>
+                    ))}
+                  </div>
+                </div>}
+                {feedback && <>
+                  <textarea style={{ ...S.input, minHeight: 70, resize: "none", fontSize: 13, marginBottom: 10 }} placeholder="Commentaire optionnel — pourquoi cette décision ?" value={feedbackComment} onChange={e => setFeedbackComment(e.target.value)} />
+                  <button onClick={submitFeedback} disabled={feedback === "different" && !feedbackDecision}
+                    style={{ width: "100%", padding: "10px", background: (feedback === "suivi" || feedbackDecision) ? "#c8102e" : "#eee", color: (feedback === "suivi" || feedbackDecision) ? "#fff" : "#aaa", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    Enregistrer mon retour →
+                  </button>
+                </>}
+              </> : <div style={{ textAlign: "center", padding: "12px 0" }}>
+                <span style={{ fontSize: 22 }}>✓</span>
+                <p style={{ color: "#1a7a3f", fontSize: 13, margin: "6px 0 0" }}>Retour enregistré — merci !</p>
+              </div>}
+            </div>
+
+            <button onClick={reset} style={{ width: "100%", padding: "14px", background: "#fff", color: "#888", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, cursor: "pointer" }}>← Nouvel article</button>
           </div>;
         })()}
 
