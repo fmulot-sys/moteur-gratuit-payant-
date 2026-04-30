@@ -102,7 +102,7 @@ Analyse le texte pour vérifier si les critères déclarés sont cohérents avec
       const response = await fetch("/api/arbitrage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 1000, system: MATRIX_SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }] }),
+        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 600, system: MATRIX_SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }] }),
       });
       const data = await response.json();
       const raw = data.content?.find(b => b.type === "text")?.text || "";
