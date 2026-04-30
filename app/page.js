@@ -21,7 +21,7 @@ Respire = contenu lifestyle / bien-être → aller à l'étape 2C
 
 **ÉTAPE 2A — Top sport : exclusivité ?**
 Exclusivité = présence terrain sans concurrence (reportage) OU propos accordés en exclusivité ou en premier (interview, même partagée avec peu de médias) OU capacité d'analyse exclusive propre à L'Équipe (décryptage).
-RÈGLE ABSOLUE — PRÉSENCE TERRAIN : Si le texte indique que le journaliste est sur place (zone mixte, vestiaires, bord terrain, conférence de presse, déplacement avec l'équipe, etc.), les déclarations sont AUTOMATIQUEMENT considérées comme exclusives. Cette règle est non négociable et prévaut sur tout autre critère. Tu ne dois JAMAIS qualifier de non-exclusives des déclarations recueillies par un journaliste présent physiquement.
+RÈGLE ABSOLUE — PRÉSENCE TERRAIN : Si le journaliste est sur place (zone mixte, conférence de presse, bord terrain, déplacement avec l'équipe), les déclarations sont EXCLUSIVES. Point. Tu n'as pas à juger si d'autres médias étaient présents ou si les propos sont "standards". La présence physique du journaliste suffit. Ne contourne jamais cette règle.
 → SI OUI : PAYANT
 → SI NON : GRATUIT
 
@@ -102,7 +102,7 @@ Analyse le texte pour vérifier si les critères déclarés sont cohérents avec
       const response = await fetch("/api/arbitrage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 600, system: MATRIX_SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }] }),
+        body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 1000, system: MATRIX_SYSTEM_PROMPT, messages: [{ role: "user", content: userPrompt }] }),
       });
       const data = await response.json();
       const raw = data.content?.find(b => b.type === "text")?.text || "";
