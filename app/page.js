@@ -174,7 +174,7 @@ Analyse le texte pour vérifier si les critères déclarés sont cohérents avec
             <label style={{ color: "#111", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 4 }}>Le contenu est-il exclusif ?</label>
             <p style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>Terrain sans concurrence, interview en 1er, analyse propre à L&apos;Équipe — l&apos;outil vérifiera dans le texte</p>
             <div style={{ display: "flex", gap: 8 }}>
-              {[{v:"oui",l:"Oui"},{v:"non",l:"Non"},{v:"partiel",l:"Partiel / incertain"}].map(o => (
+              {[{v:"oui",l:"Oui"},{v:"non",l:"Non"}].map(o => (
                 <button key={o.v} onClick={() => setForm({...form, exclusivite: o.v})}
                   style={{ ...S.chip, flex: 1, background: form.exclusivite === o.v ? "#111" : "#fff", color: form.exclusivite === o.v ? "#fff" : "#333", border: form.exclusivite === o.v ? "1px solid #111" : "1px solid #ddd" }}>
                   {o.l}
