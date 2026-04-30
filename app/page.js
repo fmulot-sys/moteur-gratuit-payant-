@@ -21,7 +21,7 @@ Respire = contenu lifestyle / bien-être → aller à l'étape 2C
 
 **ÉTAPE 2A — Top sport : exclusivité ?**
 Exclusivité = présence terrain sans concurrence (reportage) OU propos accordés en exclusivité ou en premier (interview, même partagée avec peu de médias) OU capacité d'analyse exclusive propre à L'Équipe (décryptage).
-RÈGLE ABSOLUE — PRÉSENCE TERRAIN : Si le texte indique que le journaliste est sur place, les déclarations sont EXCLUSIVES par défaut. Tu ne peux qualifier ces déclarations de non-exclusives QUE si le texte mentionne EXPLICITEMENT qu'elles ont été recueillies en zone mixte ouverte ou en conférence de presse. Si cette information n'est pas dans le texte, tu appliques la règle terrain sans exception et sans déduction.
+RÈGLE ABSOLUE — EXCLUSIVITÉ TERRAIN : Si le journaliste est sur place ET a recueilli des déclarations, le critère d'exclusivité est rempli. Tu n'as pas à analyser la nature des déclarations, leur contexte de recueil, ou la présence éventuelle d'autres médias. Présence terrain + déclarations recueillies = exclusif. Point final. Toute autre considération est hors matrice.
 → SI OUI : PAYANT
 → SI NON : GRATUIT
 
