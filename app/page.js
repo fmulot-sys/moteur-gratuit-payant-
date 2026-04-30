@@ -90,7 +90,7 @@ export default function App() {
     setView("loading"); setError(null); setFeedback(null); setFeedbackSaved(false); setFeedbackComment(""); setFeedbackDecision("");
     const userPrompt = `Critères déclarés par l'utilisateur (à vérifier et challenger via le texte) :
 TYPE DE SPORT déclaré : ${form.sport_type === "top" ? "Top sport (football, rugby, tennis, cyclisme, F1, NBA)" : form.sport_type === "respire" ? "Respire" : "Autre sport"}
-EXCLUSIVITÉ déclarée : ${form.exclusivite === "oui" ? "Oui" : form.exclusivite === "non" ? "Non" : "Partielle"}${showTransversalite ? `\nTRANSVERSALITÉ déclarée : ${form.transversalite === "oui" ? "Oui" : form.transversalite === "non" ? "Non" : "Difficile à dire"}` : ""}${showNotoriete ? `\nNOTORIÉTÉ déclarée : ${form.notoriete === "oui" ? "Oui" : "Non"}` : ""}
+EXCLUSIVITÉ (décision de l'utilisateur, à appliquer telle quelle sans la remettre en question) : ${form.exclusivite === "oui" ? "OUI" : form.exclusivite === "non" ? "NON" : "PARTIELLE"}${showTransversalite ? `\nTRANSVERSALITÉ déclarée : ${form.transversalite === "oui" ? "Oui" : form.transversalite === "non" ? "Non" : "Difficile à dire"}` : ""}${showNotoriete ? `\nNOTORIÉTÉ déclarée : ${form.notoriete === "oui" ? "Oui" : "Non"}` : ""}
 
 TITRE : ${form.titre || "(non renseigné)"}
 
